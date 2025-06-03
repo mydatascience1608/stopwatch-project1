@@ -9,7 +9,7 @@ let alarm5Enabled = false;
 let alarm25Enabled = false;
 let alarm5Triggered = false;
 let alarm25Triggered = false;
-const API_BASE_URL = "https://stopwatch-server.onrender.com/api/history";
+const API_BASE_URL = "https://stopwatch-project1-4.onrender.com/";
 
 function start() {
   if (!isRunning) {
