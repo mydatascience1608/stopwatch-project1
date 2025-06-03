@@ -83,11 +83,36 @@ function completed() {
   
   // Gắn các ô vào dòng
   newRow.appendChild(idCell);
-  newRow.appendChild(noteCell);
-  newRow.appendChild(timeCell);
-  newRow.appendChild(timeValueCell);
+newRow.appendChild(noteCell);
+newRow.appendChild(timeCell);
+newRow.appendChild(timeValueCell);
 
-  newRow.appendChild(deleteCell);
+// ✅ Tạo deleteCell và thêm vào trước khi đẩy lên bảng
+const deleteCell = document.createElement("td");
+const deleteBtn = document.createElement("button");
+deleteBtn.textContent = "X";
+deleteBtn.style.color = "white";
+deleteBtn.style.backgroundColor = "#d9534f";
+deleteBtn.style.border = "none";
+deleteBtn.style.padding = "4px 8px";
+deleteBtn.style.cursor = "pointer";
+
+deleteBtn.onclick = function () {
+  fetch(`${API_BASE_URL}/${data._id}`, {
+    method: "DELETE",
+  })
+    .then((res) => {
+      if (res.ok) {
+        tableBody.removeChild(newRow);
+      } else {
+        alert("Xoá thất bại!");
+      }
+    })
+    .catch(() => alert("Lỗi kết nối server!"));
+};
+
+deleteCell.appendChild(deleteBtn);
+newRow.appendChild(deleteCell);
   saveIndex++;
   display.textContent = "00:00:00";
   startTime = 0;
