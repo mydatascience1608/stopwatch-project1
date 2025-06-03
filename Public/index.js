@@ -9,7 +9,7 @@ let alarm5Enabled = false;
 let alarm25Enabled = false;
 let alarm5Triggered = false;
 let alarm25Triggered = false;
-const API_BASE_URL = "http://localhost:3000/api/history";
+const API_BASE_URL = "https://stopwatch-server.onrender.com/api/history";
 
 function start() {
   if (!isRunning) {
@@ -133,7 +133,7 @@ function completed() {
   elapsedTime = 0;
   if (noteInput) noteInput.value = "";
   // Gửi dữ liệu lên backend
-  fetch("http://localhost:3000/api/history", {
+  fetch(API_BASE_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -243,7 +243,7 @@ function setAlarm25() {
   alert("Chuông 25 phút đã được đặt");
 }
 function loadHistory() {
-  fetch("http://localhost:3000/api/history")
+  fetch(API_BASE_URL)
     .then((res) => res.json())
     .then((data) => {
       const tableBody = document.getElementById("hisBody");
@@ -254,7 +254,7 @@ function loadHistory() {
 
         // ID
         const idCell = document.createElement("td");
-        idCell.textContent = record.id;
+        idCell.textContent = record._id.slice(-4); // lấy 4 ký tự cuối cho gọn
 
         // Ghi chú
         const noteCell = document.createElement("td");
@@ -280,7 +280,7 @@ function loadHistory() {
         deleteBtn.style.cursor = "pointer";
 
         deleteBtn.onclick = function () {
-          fetch(`http://localhost:3000/api/history/${record.id}`, {
+          fetch(`${API_BASE_URL}/${record.id}`, {
             method: "DELETE",
           })
             .then((res) => res.json())
