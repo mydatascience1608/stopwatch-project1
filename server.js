@@ -11,6 +11,7 @@ app.use(cors());
 app.use(express.json());
 
 // 👉 Thêm dòng này ngay tại đây
+const path = require('path');
 app.use(express.static(path.join(__dirname, 'Public')));
 
 // Helper: đọc file JSON
