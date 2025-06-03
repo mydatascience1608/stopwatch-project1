@@ -59,7 +59,9 @@ function completed() {
 
   // ID
   const idCell = document.createElement("td");
-  idCell.textContent = saveIndex;
+  idCell.textContent = ""; // Tạm thời để rỗng
+  newRow.appendChild(idCell);
+
 
   // Ghi chú (editable)
   const noteCell = document.createElement("td");
@@ -70,9 +72,7 @@ function completed() {
 
   noteCell.addEventListener("blur", function () {
     const updatedNote = noteCell.textContent;
-    const id = newRow.dataset.id;
-
-    fetch(`${API_BASE_URL}/${id}`, {
+    fetch(`${API_BASE_URL}/${record._id}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -80,7 +80,7 @@ function completed() {
       body: JSON.stringify({ note: updatedNote }),
     }).then((res) => {
       if (!res.ok) {
-        alert("Không thể lưu ghi chú!");
+        alert("Không thể cập nhật ghi chú!");
       }
     });
   });
@@ -146,8 +146,10 @@ function completed() {
   })
     .then((res) => res.json())
     .then((data) => {
+      newRow.dataset.id = data._id; // ⚠️ Lưu _id khi tạo mới
       loadHistory(); // Tự động reload bảng, khỏi cần render thủ công
       console.log("Đã lưu:", data);
+      idCell.textContent = data._id.slice(-4); // Cập nhật ID sau khi nhận từ server
     })
     .catch((err) => console.error("Lỗi lưu:", err));
 }
@@ -251,6 +253,7 @@ function loadHistory() {
 
       data.forEach((record) => {
         const newRow = document.createElement("tr");
+        newRow.dataset.id = record._id; // ⚠️ Gán _id từ MongoDB
 
         // ID
         const idCell = document.createElement("td");
@@ -280,7 +283,7 @@ function loadHistory() {
         deleteBtn.style.cursor = "pointer";
 
         deleteBtn.onclick = function () {
-          fetch(`${API_BASE_URL}/${record.id}`, {
+          fetch(`${API_BASE_URL}/${record._id}`, {
             method: "DELETE",
           })
             .then((res) => res.json())
