@@ -10,6 +10,9 @@ const dataFile = path.join(__dirname, "data.json");
 app.use(cors());
 app.use(express.json());
 
+// 👉 Thêm dòng này ngay tại đây
+app.use(express.static(path.join(__dirname, 'public')));
+
 // Helper: đọc file JSON
 function readData() {
   try {
