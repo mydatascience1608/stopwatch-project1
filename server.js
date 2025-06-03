@@ -13,7 +13,7 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, "public"))); // phục vụ frontend
 
 // Kết nối MongoDB Atlas
-mongoose.connect("mongodb+srv://mydatascience1608:taideptrai123@cluster0.gvefted.mongodb.net/timerDB?retryWrites=true&w=majority", {
+mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 }).then(() => {
