@@ -1,97 +1,63 @@
 const express = require("express");
+const mongoose = require("mongoose");
 const cors = require("cors");
-const fs = require("fs");
 const path = require("path");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const dataFile = path.join(__dirname, "data.json");
 
+// Middleware
 app.use(cors());
 app.use(express.json());
+app.use(express.static(path.join(__dirname, "public"))); // phục vụ frontend
 
-// 👉 Thêm dòng này ngay tại đây
-const path = require('path');
-app.use(express.static(path.join(__dirname, 'Public')));
+// Kết nối MongoDB Atlas
+mongoose.connect("mongodb+srv://mydatascience1608:taideptrai123@cluster0.gvefted.mongodb.net/timerDB?retryWrites=true&w=majority", {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+}).then(() => {
+  console.log("✅ Kết nối MongoDB Atlas thành công!");
+}).catch((err) => {
+  console.error("❌ Lỗi kết nối MongoDB:", err);
+});
 
-// Helper: đọc file JSON
-function readData() {
-  try {
-    const data = fs.readFileSync(dataFile, "utf-8");
-    return JSON.parse(data);
-  } catch (err) {
-    return [];
-  }
-}
+// Tạo Schema & Model
+const historySchema = new mongoose.Schema({
+  note: String,
+  timePoint: String,
+  duration: String
+});
 
-// Helper: ghi file JSON
-function writeData(data) {
-  fs.writeFileSync(dataFile, JSON.stringify(data, null, 2), "utf-8");
-}
+const History = mongoose.model("History", historySchema);
 
 // API: lấy toàn bộ lịch sử
-app.get("/api/history", (req, res) => {
-  const data = readData();
+app.get("/api/history", async (req, res) => {
+  const data = await History.find();
   res.json(data);
 });
 
 // API: thêm mới 1 dòng
-app.post("/api/history", (req, res) => {
-  const data = readData();
+app.post("/api/history", async (req, res) => {
   const { note, timePoint, duration } = req.body;
-
-  const newItem = {
-    id: data.length > 0 ? data[data.length - 1].id + 1 : 1,
-    note,
-    timePoint,
-    duration,
-  };
-
-  data.push(newItem);
-  writeData(data);
-
+  const newItem = new History({ note, timePoint, duration });
+  await newItem.save();
   res.status(201).json(newItem);
 });
 
-// API: xoá 1 dòng theo ID
-app.delete("/api/history/:id", (req, res) => {
-  const data = readData();
-  const idToDelete = parseInt(req.params.id);
-
-  const updatedData = data.filter((item) => item.id !== idToDelete);
-
-  if (data.length === updatedData.length) {
-    return res.status(404).json({ message: "Không tìm thấy ID" });
-  }
-
-  // Gán lại ID từ 1,2,3,...
-  const reIndexed = updatedData.map((item, index) => ({
-    ...item,
-    id: index + 1,
-  }));
-
-  writeData(reIndexed);
-  res.json({ message: "Đã xoá và cập nhật lại ID" });
-});
-
-// Khởi động server
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
-
-// 📝 PUT cập nhật ghi chú
-app.put("/api/history/:id", (req, res) => {
-  const data = readData();
-  const id = parseInt(req.params.id);
+// API: cập nhật ghi chú
+app.put("/api/history/:id", async (req, res) => {
   const { note } = req.body;
-
-  const updated = data.map((item) => {
-    if (item.id === id) {
-      return { ...item, note };
-    }
-    return item;
-  });
-
-  writeData(updated);
+  await History.findByIdAndUpdate(req.params.id, { note });
   res.json({ message: "Đã cập nhật ghi chú" });
+});
+
+// API: xoá 1 dòng
+app.delete("/api/history/:id", async (req, res) => {
+  await History.findByIdAndDelete(req.params.id);
+  res.json({ message: "Đã xoá" });
+});
+
+// Chạy server
+app.listen(PORT, () => {
+  console.log(`🚀 Server is running on port ${PORT}`);
 });
