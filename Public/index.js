@@ -70,9 +70,48 @@ function completed() {
   noteCell.style.cursor = "text";
   newRow.dataset.id = saveIndex; // Gán ID cho dòng để dùng sau
 
-  noteCell.addEventListener("blur", function () {
+  
+  // Thời điểm
+  const timeCell = document.createElement("td");
+  timeCell.textContent = systemTime;
+
+  // Thời gian
+  const timeValueCell = document.createElement("td");
+  timeValueCell.textContent = stopwatchTime;
+
+  // Nút xoá
+  
+  // Gắn các ô vào dòng
+  newRow.appendChild(idCell);
+  newRow.appendChild(noteCell);
+  newRow.appendChild(timeCell);
+  newRow.appendChild(timeValueCell);
+
+  newRow.appendChild(deleteCell);
+  saveIndex++;
+  display.textContent = "00:00:00";
+  startTime = 0;
+  elapsedTime = 0;
+  if (noteInput) noteInput.value = "";
+  // Gửi dữ liệu lên backend
+  fetch(API_BASE_URL, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    note: noteValue,
+    timePoint: systemTime,
+    duration: stopwatchTime,
+  }),
+})
+  .then((res) => res.json())
+  .then((data) => {
+    newRow.dataset.id = data._id;
+    idCell.textContent = data._id.slice(-4); // Gán ID vào ô sau khi có _id từ MongoDB
+    noteCell.addEventListener("blur", function () {
     const updatedNote = noteCell.textContent;
-    fetch(`${API_BASE_URL}/${record._id}`, {
+    fetch(`${API_BASE_URL}/${data._id}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -84,74 +123,36 @@ function completed() {
       }
     });
   });
+    // 👉 Tạo nút xoá sau khi có _id
+    const deleteCell = document.createElement("td");
+    const deleteBtn = document.createElement("button");
+    deleteBtn.textContent = "X";
+    deleteBtn.style.color = "white";
+    deleteBtn.style.backgroundColor = "#d9534f";
+    deleteBtn.style.border = "none";
+    deleteBtn.style.padding = "4px 8px";
+    deleteBtn.style.cursor = "pointer";
 
-  // Thời điểm
-  const timeCell = document.createElement("td");
-  timeCell.textContent = systemTime;
-
-  // Thời gian
-  const timeValueCell = document.createElement("td");
-  timeValueCell.textContent = stopwatchTime;
-
-  // Nút xoá
-  const deleteCell = document.createElement("td");
-  const deleteBtn = document.createElement("button");
-  deleteBtn.textContent = "X";
-  deleteBtn.style.color = "white";
-  deleteBtn.style.backgroundColor = "#d9534f";
-  deleteBtn.style.border = "none";
-  deleteBtn.style.padding = "4px 8px";
-  deleteBtn.style.cursor = "pointer";
-  deleteBtn.onclick = function () {
-    const id = newRow.dataset.id;
-    fetch(`https://stopwatch-server.onrender.com/api/history/${id}`, {
-      method: "DELETE",
-    })
-      .then((res) => {
-        if (res.ok) {
-          tableBody.removeChild(newRow);
-        } else {
-          alert("Xoá thất bại!");
-        }
+    deleteBtn.onclick = function () {
+      fetch(`${API_BASE_URL}/${data._id}`, {
+        method: "DELETE",
       })
-      .catch(() => alert("Lỗi kết nối server!"));
-  };
-  deleteCell.appendChild(deleteBtn);
+        .then((res) => {
+          if (res.ok) {
+            tableBody.removeChild(newRow);
+          } else {
+            alert("Xoá thất bại!");
+          }
+        })
+        .catch(() => alert("Lỗi kết nối server!"));
+    };
 
-  // Gắn các ô vào dòng
-  newRow.appendChild(idCell);
-  newRow.appendChild(noteCell);
-  newRow.appendChild(timeCell);
-  newRow.appendChild(timeValueCell);
-  newRow.appendChild(deleteCell);
 
-  tableBody.appendChild(newRow);
-
-  saveIndex++;
-  display.textContent = "00:00:00";
-  startTime = 0;
-  elapsedTime = 0;
-  if (noteInput) noteInput.value = "";
-  // Gửi dữ liệu lên backend
-  fetch(API_BASE_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      note: noteValue,
-      timePoint: systemTime,
-      duration: stopwatchTime,
-    }),
+    tableBody.appendChild(newRow); // Gắn dòng vào bảng sau khi hoàn tất
+    loadHistory(); // Load lại toàn bộ để đồng bộ UI
+    console.log("Đã lưu:", data);
   })
-    .then((res) => res.json())
-    .then((data) => {
-      newRow.dataset.id = data._id; // ⚠️ Lưu _id khi tạo mới
-      loadHistory(); // Tự động reload bảng, khỏi cần render thủ công
-      console.log("Đã lưu:", data);
-      idCell.textContent = data._id.slice(-4); // Cập nhật ID sau khi nhận từ server
-    })
-    .catch((err) => console.error("Lỗi lưu:", err));
+  .catch((err) => console.error("Lỗi lưu:", err));
 }
 
 function update() {
@@ -272,25 +273,16 @@ function loadHistory() {
         const durationCell = document.createElement("td");
         durationCell.textContent = record.duration;
 
-        // Xoá
+
         const deleteCell = document.createElement("td");
         const deleteBtn = document.createElement("button");
+        // Xoá
         deleteBtn.textContent = "X";
         deleteBtn.style.backgroundColor = "#d9534f";
         deleteBtn.style.color = "white";
         deleteBtn.style.border = "none";
         deleteBtn.style.padding = "4px 8px";
         deleteBtn.style.cursor = "pointer";
-
-        deleteBtn.onclick = function () {
-          fetch(`${API_BASE_URL}/${record._id}`, {
-            method: "DELETE",
-          })
-            .then((res) => res.json())
-            .then(() => {
-              loadHistory(); // Cập nhật lại bảng
-            });
-        };
 
         deleteCell.appendChild(deleteBtn);
 
