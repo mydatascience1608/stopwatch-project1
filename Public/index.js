@@ -9,7 +9,7 @@ let alarm5Enabled = false;
 let alarm25Enabled = false;
 let alarm5Triggered = false;
 let alarm25Triggered = false;
-const API_BASE_URL = "https://stopwatch-project1-4.onrender.com/";
+const API_BASE_URL = "https://stopwatch-project1-4.onrender.com/api/history";
 
 function start() {
   if (!isRunning) {
@@ -57,34 +57,82 @@ function completed() {
   const tableBody = document.getElementById("hisBody");
   const newRow = document.createElement("tr");
 
-  // ID - sẽ cập nhật sau khi có phản hồi từ server
+  // ID
   const idCell = document.createElement("td");
-  idCell.textContent = "";
-  newRow.appendChild(idCell);
+  idCell.textContent = saveIndex;
 
-  // Ghi chú
+  // Ghi chú (editable)
   const noteCell = document.createElement("td");
   noteCell.textContent = noteValue;
   noteCell.contentEditable = true;
-  newRow.appendChild(noteCell);
+  noteCell.style.cursor = "text";
+  newRow.dataset.id = saveIndex; // Gán ID cho dòng để dùng sau
+
+  noteCell.addEventListener("blur", function () {
+    const updatedNote = noteCell.textContent;
+    const id = newRow.dataset.id;
+
+    fetch(`${API_BASE_URL}/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ note: updatedNote }),
+    }).then((res) => {
+      if (!res.ok) {
+        alert("Không thể lưu ghi chú!");
+      }
+    });
+  });
 
   // Thời điểm
   const timeCell = document.createElement("td");
   timeCell.textContent = systemTime;
-  newRow.appendChild(timeCell);
 
   // Thời gian
   const timeValueCell = document.createElement("td");
   timeValueCell.textContent = stopwatchTime;
-  newRow.appendChild(timeValueCell);
 
-  // Cập nhật UI tạm thời
+  // Nút xoá
+  const deleteCell = document.createElement("td");
+  const deleteBtn = document.createElement("button");
+  deleteBtn.textContent = "X";
+  deleteBtn.style.color = "white";
+  deleteBtn.style.backgroundColor = "#d9534f";
+  deleteBtn.style.border = "none";
+  deleteBtn.style.padding = "4px 8px";
+  deleteBtn.style.cursor = "pointer";
+  deleteBtn.onclick = function () {
+    const id = newRow.dataset.id;
+    fetch(`${API_BASE_URL}/${id}`, {
+      method: "DELETE",
+    })
+      .then((res) => {
+        if (res.ok) {
+          tableBody.removeChild(newRow);
+        } else {
+          alert("Xoá thất bại!");
+        }
+      })
+      .catch(() => alert("Lỗi kết nối server!"));
+  };
+  deleteCell.appendChild(deleteBtn);
+
+  // Gắn các ô vào dòng
+  newRow.appendChild(idCell);
+  newRow.appendChild(noteCell);
+  newRow.appendChild(timeCell);
+  newRow.appendChild(timeValueCell);
+  newRow.appendChild(deleteCell);
+
+  tableBody.appendChild(newRow);
+
+  saveIndex++;
   display.textContent = "00:00:00";
   startTime = 0;
   elapsedTime = 0;
   if (noteInput) noteInput.value = "";
-
-  // Gửi dữ liệu lên server
+  // Gửi dữ liệu lên backend
   fetch(API_BASE_URL, {
     method: "POST",
     headers: {
@@ -98,59 +146,10 @@ function completed() {
   })
     .then((res) => res.json())
     .then((data) => {
-      newRow.dataset.id = data._id;
-      idCell.textContent = data._id.slice(-4); // Gán ID rút gọn
-
-      // Ghi chú editable: cập nhật lên server khi blur
-      noteCell.addEventListener("blur", function () {
-        const updatedNote = noteCell.textContent;
-        fetch(`${API_BASE_URL}/${data._id}`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ note: updatedNote }),
-        }).then((res) => {
-          if (!res.ok) {
-            alert("Không thể cập nhật ghi chú!");
-          }
-        });
-      });
-
-      // Nút xoá
-      const deleteCell = document.createElement("td");
-      const deleteBtn = document.createElement("button");
-      deleteBtn.textContent = "X";
-      deleteBtn.style.color = "white";
-      deleteBtn.style.backgroundColor = "#d9534f";
-      deleteBtn.style.border = "none";
-      deleteBtn.style.padding = "4px 8px";
-      deleteBtn.style.cursor = "pointer";
-
-      deleteBtn.onclick = function () {
-        fetch(`${API_BASE_URL}/${data._id}`, {
-          method: "DELETE",
-        })
-          .then((res) => {
-            if (res.ok) {
-              tableBody.removeChild(newRow);
-            } else {
-              alert("Xoá thất bại!");
-            }
-          })
-          .catch(() => alert("Lỗi kết nối server!"));
-      };
-
-      deleteCell.appendChild(deleteBtn);
-      newRow.appendChild(deleteCell);
-
-      // Gắn vào bảng
-      tableBody.appendChild(newRow);
+      loadHistory(); // Tự động reload bảng, khỏi cần render thủ công
       console.log("Đã lưu:", data);
     })
     .catch((err) => console.error("Lỗi lưu:", err));
-}
-
 }
 
 function update() {
@@ -252,16 +251,17 @@ function loadHistory() {
 
       data.forEach((record) => {
         const newRow = document.createElement("tr");
-        newRow.dataset.id = record._id; // ⚠️ Gán _id từ MongoDB
 
-        // ID
-        const idCell = document.createElement("td");
-        idCell.textContent = record._id.slice(-4); // lấy 4 ký tự cuối cho gọn
+       // ID
+const idCell = document.createElement("td");
+idCell.textContent = record._id;
+newRow.dataset.id = record._id; // Thêm dòng này để gán đúng id cho dòng
 
-        // Ghi chú
-        const noteCell = document.createElement("td");
-        noteCell.textContent = record.note;
-        noteCell.contentEditable = true;
+// Ghi chú
+const noteCell = document.createElement("td");
+noteCell.textContent = record.note;
+noteCell.contentEditable = true;
+
 
         // Thời điểm
         const timeCell = document.createElement("td");
@@ -271,16 +271,25 @@ function loadHistory() {
         const durationCell = document.createElement("td");
         durationCell.textContent = record.duration;
 
-
+        // Xoá
         const deleteCell = document.createElement("td");
         const deleteBtn = document.createElement("button");
-        // Xoá
         deleteBtn.textContent = "X";
         deleteBtn.style.backgroundColor = "#d9534f";
         deleteBtn.style.color = "white";
         deleteBtn.style.border = "none";
         deleteBtn.style.padding = "4px 8px";
         deleteBtn.style.cursor = "pointer";
+
+        deleteBtn.onclick = function () {
+          fetch(`${API_BASE_URL}/${record.id}`, {
+            method: "DELETE",
+          })
+            .then((res) => res.json())
+            .then(() => {
+              loadHistory(); // Cập nhật lại bảng
+            });
+        };
 
         deleteCell.appendChild(deleteBtn);
 
