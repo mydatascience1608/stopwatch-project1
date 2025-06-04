@@ -42,7 +42,6 @@ function reset() {
 let saveIndex = 1;
 
 function completed() {
-function completed() {
   if (isRunning) {
     clearInterval(timer);
     elapsedTime = Date.now() - startTime;
